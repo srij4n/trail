@@ -1,25 +1,21 @@
-import { Button } from "@/components/ui/button";
-import { Loader2 } from "lucide-react";
-import { Streamdown } from 'streamdown';
+import { Link } from "wouter";
+import { ArrowUpRight, CheckCircle2, Clock3, FileCheck2, Flag, Hash, ShieldAlert, Sparkles } from "lucide-react";
+import TrailShell, { ArrowCta, PageIcon, useTrailSnapshot } from "@/components/TrailShell";
+import { trpc } from "@/lib/trpc";
 
-/**
- * All content in this page are only for example, replace with your own feature implementation
- * When building pages, remember your instructions in Frontend Workflow, Frontend Best Practices, Design Guide and Common Pitfalls
- */
+const eventLabel: Record<string, string> = { filed: "Complaint filed", evidence_added: "Evidence added", acknowledged: "Acknowledged", progress_note: "Progress note", escalated: "Escalated", closed: "Closed with response", appealed: "Appeal logged", reply: "Official reply" };
 export default function Home() {
-  // If theme is switchable in App.tsx, we can implement theme toggling like this:
-  // const { theme, toggleTheme } = useTheme();
-
-  return (
-    <div className="min-h-screen flex flex-col">
-      <main>
-        {/* Example: lucide-react for icons */}
-        <Loader2 className="animate-spin" />
-        Example Page
-        {/* Example: Streamdown for markdown rendering */}
-        <Streamdown>Any **markdown** content</Streamdown>
-        <Button variant="default">Example Button</Button>
-      </main>
-    </div>
-  );
+  const { data, isLoading } = useTrailSnapshot();
+  const advance = trpc.trail.advanceClock.useMutation();
+  const reset = trpc.trail.resetClock.useMutation();
+  const clock = data?.clock?.offsetSeconds ?? 0; const complaint = data?.complaint;
+  const refresh = () => window.setTimeout(() => window.location.reload(), 100);
+  const step = clock >= 80 ? 5 : clock >= 60 ? 4 : clock >= 40 ? 3 : clock >= 20 ? 2 : 1;
+  return <TrailShell active="/">
+    <section className="hero-grid"><div><div className="eyebrow">Citizen accountability ledger · v0.1</div><h1 className="serif">Nothing disappears quietly.</h1><p className="lede">Trail gives every complaint a visible route: evidence, authority, deadlines, progress, and appeal. The record is designed to be checked—not trusted blindly.</p><div style={{ display: "flex", gap: 10, marginTop: 22, flexWrap: "wrap" }}><ArrowCta href="/file">File a complaint</ArrowCta><Link href="/verify" className="btn btn-ghost">Verify a record <Hash size={15} /></Link></div></div><div className="hero-callout"><p>“A complaint with evidence must never disappear without a trace.”</p><div style={{ marginTop: 12, color: "var(--muted-ink)", fontSize: 11 }}>The principle behind every append-only event.</div></div></section>
+    <div className="clock-card" style={{ marginBottom: 22 }}><div><div className="eyebrow" style={{ color: "#f4d88c" }}>DEMO CLOCK</div><div className="clock-value">+{clock}s from filing</div></div><div className="clock-controls"><button className="btn btn-saffron btn-sm" onClick={() => advance.mutate({ seconds: 20 }, { onSuccess: refresh })}><Clock3 size={14} /> Advance 20s</button><button className="btn btn-ghost btn-sm" style={{ color: "white", borderColor: "rgba(255,255,255,.22)" }} onClick={() => advance.mutate({ seconds: 60 }, { onSuccess: refresh })}>Run the scenario</button><button className="btn btn-ghost btn-sm" style={{ color: "white", borderColor: "rgba(255,255,255,.22)" }} onClick={() => reset.mutate(undefined, { onSuccess: refresh })}>Reset</button></div></div>
+    <div className="grid-3" style={{ marginBottom: 18 }}><div className="card stat"><div className="stat-label">Active demo case</div><div className="stat-value mono" style={{ fontSize: 22 }}>{complaint?.complaintId ?? "—"}</div><span className="badge badge-amber" style={{ marginTop: 10 }}>{complaint?.friendlyStatus ?? "Loading"}</span></div><div className="card stat"><div className="stat-label">Chain events recorded</div><div className="stat-value">{data?.events?.length ?? "—"}</div><div className="stat-label">append-only actions</div></div><div className="card stat"><div className="stat-label">Next authority</div><div className="stat-value" style={{ fontSize: 19 }}>{complaint?.currentAuthority?.split(" · ")[0] ?? "—"}</div><div className="stat-label">simulated authority chain</div></div></div>
+    <div className="grid-2"><section className="card card-pad"><div className="section-label"><div><div className="eyebrow">Scenario path</div><h3 style={{ marginTop: 5 }}>One seeded case, five visible steps</h3></div><Sparkles size={18} color="var(--saffron)" /></div><div className="progress-line" style={{ margin: "17px 0 18px" }}><span style={{ width: `${(step / 5) * 100}%` }} /></div>{[{ n: "01", title: "Filed", note: "A written complaint creates the first event." }, { n: "02", title: "Acknowledgement missed", note: "Silence crosses the illustrative deadline." }, { n: "03", title: "Active review", note: "An official progress note resets the review clock." }, { n: "04", title: "Closed with response", note: "Closure carries a reason, never an edit." }, { n: "05", title: "Appeal logged", note: "The citizen’s next route stays visible." }].map((item, index) => <div key={item.n} style={{ display: "flex", gap: 12, padding: "12px 0", borderBottom: index === 4 ? 0 : "1px solid #ebe8df", opacity: index + 1 <= step ? 1 : .42 }}><span className="mono" style={{ color: index + 1 <= step ? "var(--saffron)" : "#a6a6a0", fontSize: 12 }}>{item.n}</span><div><strong style={{ fontSize: 13 }}>{item.title}</strong><div style={{ fontSize: 11, color: "var(--muted-ink)", marginTop: 3 }}>{item.note}</div></div>{index + 1 <= step && <CheckCircle2 size={15} color="var(--mint-ink)" style={{ marginLeft: "auto" }} />}</div>)}</section><section className="card card-pad"><div className="section-label"><div><div className="eyebrow">Current record</div><h3 style={{ marginTop: 5 }}>What the public can see</h3></div><Link href={`/track/${complaint?.complaintId ?? "TRAIL-DEMO-001"}`} className="btn btn-ghost btn-sm">Open case <ArrowUpRight size={14} /></Link></div>{isLoading ? <p className="lede">Loading the server-side record…</p> : complaint ? <><div className="callout warn"><Flag size={15} style={{ verticalAlign: "middle", marginRight: 7 }} /><strong>{complaint.category}</strong><div style={{ marginTop: 5 }}>{complaint.description}</div></div><div className="divider" /><div className="deadline-row"><div><div className="deadline-name">Acknowledgement</div><div className="deadline-note">20 seconds in the demo clock</div></div><span className={`badge ${clock >= 20 ? "badge-red" : "badge-amber"}`}>{clock >= 20 ? "Missed" : "Upcoming"}</span></div><div className="deadline-row"><div><div className="deadline-name">Progress / review</div><div className="deadline-note">The clock resets after a note</div></div><span className={`badge ${clock >= 40 ? "badge-mint" : "badge-blue"}`}>{clock >= 40 ? "Reset" : "Next"}</span></div><div className="deadline-row"><div><div className="deadline-name">Privacy</div><div className="deadline-note">Names stay out of the public view</div></div><span className="badge badge-mint">Protected</span></div></> : <div className="callout danger"><ShieldAlert size={16} /> The database is not available in this preview yet.</div>}</section></div>
+    <div className="grid-3" style={{ marginTop: 18 }}><Link href="/file" className="card-flat card-pad"><PageIcon icon={FileCheck2} /><h3 style={{ marginTop: 13 }}>Write it down</h3><p className="lede" style={{ fontSize: 12, margin: "6px 0 0" }}>A written route is equal to a recording route. Add evidence only if you have it.</p></Link><Link href="/verify" className="card-flat card-pad"><PageIcon icon={Hash} /><h3 style={{ marginTop: 13 }}>Check the chain</h3><p className="lede" style={{ fontSize: 12, margin: "6px 0 0" }}>Recompute the whole record and see exactly where a break occurs.</p></Link><Link href="/legal" className="card-flat card-pad"><PageIcon icon={ShieldAlert} /><h3 style={{ marginTop: 13 }}>Find the next route</h3><p className="lede" style={{ fontSize: 12, margin: "6px 0 0" }}>Escalation exhausted? Review the simulated checklist and legal-aid directory.</p></Link></div>
+  </TrailShell>;
 }

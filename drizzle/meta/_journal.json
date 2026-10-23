@@ -8,6 +8,13 @@
       "when": 1788785580464,
       "tag": "0000_initial_users",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "5",
+      "when": 1792765133847,
+      "tag": "0001_cold_celestials",
+      "breakpoints": true
     }
   ]
 }
